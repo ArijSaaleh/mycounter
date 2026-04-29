@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Target Counter</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #09071b;
+      --bg-2: #172447;
+      --panel: rgba(13, 16, 34, 0.8);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text: #f5f7fb;
+      --muted: #b7c0d4;
+      --accent: #ffd166;
+      --accent-2: #7cf7c2;
+      --danger: #ff8ea3;
+      --shadow: 0 30px 100px rgba(0, 0, 0, 0.44);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100svh;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255, 209, 102, 0.22), transparent 18%),
+        radial-gradient(circle at 88% 14%, rgba(124, 247, 194, 0.18), transparent 20%),
+        radial-gradient(circle at 20% 82%, rgba(119, 168, 255, 0.24), transparent 20%),
+        linear-gradient(155deg, var(--bg), var(--bg-2));
+      display: grid;
+      place-items: center;
+      padding: clamp(12px, 3vw, 28px);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(10px);
+      opacity: 0.55;
+      z-index: 0;
+      animation: drift 16s ease-in-out infinite alternate;
+    }
+
+    body::before {
+      width: min(44vw, 360px);
+      height: min(44vw, 360px);
+      left: -10vw;
+      top: 2vh;
+      background: radial-gradient(circle, rgba(124, 247, 194, 0.28), transparent 64%);
+    }
+
+    body::after {
+      width: min(50vw, 440px);
+      height: min(50vw, 440px);
+      right: -12vw;
+      bottom: -10vh;
+      background: radial-gradient(circle, rgba(255, 209, 102, 0.22), transparent 66%);
+      animation-delay: -7s;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: min(920px, 100%);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%),
+        var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: clamp(20px, 3vw, 30px);
+      box-shadow: var(--shadow);
+      padding: clamp(20px, 4vw, 34px);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+    }
+
+    .count-stage {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .count-stage .message,
+    .count-stage .hint {
+      max-width: 28ch;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 75%);
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.32em;
+      color: var(--accent-2);
+      font-size: 0.78rem;
+      margin: 0 0 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.3rem, 6vw, 4.85rem);
+      line-height: 0.94;
+      max-width: 11ch;
+      text-wrap: balance;
+    }
+
+    .subhead {
+      max-width: 52ch;
+      color: var(--muted);
+      font-size: 1.03rem;
+      line-height: 1.6;
+      margin: 18px 0 28px;
+    }
+
+    .summary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--accent);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .count-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .controls > button {
+      width: 100%;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 14px 16px;
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: rgba(124, 247, 194, 0.8);
+      box-shadow: 0 0 0 4px rgba(124, 247, 194, 0.14);
+    }
+
+    button {
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      color: #10131f;
+      background: linear-gradient(135deg, var(--accent), #fff4cc);
+      transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+      box-shadow: 0 12px 28px rgba(255, 209, 102, 0.24);
+      min-width: 140px;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin: 18px 0 22px;
+    }
+
+    .stat {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 18px;
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -45% auto;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, rgba(124, 247, 194, 0.14), transparent 70%);
+      pointer-events: none;
+    }
+
+    .stat:nth-child(2)::after {
+      background: radial-gradient(circle, rgba(255, 209, 102, 0.18), transparent 70%);
+    }
+
+    .stat:nth-child(3)::after {
+      background: radial-gradient(circle, rgba(119, 168, 255, 0.18), transparent 70%);
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .stat strong {
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }
+
+    .stat.count strong {
+      font-size: clamp(4rem, 16vw, 7rem);
+      letter-spacing: -0.08em;
+    }
+
+    .stat.target,
+    .stat.remaining {
+      min-height: 96px;
+    }
+
+    .stat.target strong,
+    .stat.remaining strong {
+      font-size: clamp(1.8rem, 8vw, 3rem);
+    }
+
+    .progress-wrap {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .progress-wrap.compact {
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar {
+      height: 18px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      transition: width 220ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.38) 50%, transparent 100%);
+      transform: translateX(-120%);
+      animation: shimmer 2.4s linear infinite;
+    }
+
+    .message {
+      font-size: clamp(1.05rem, 2.6vw, 1.55rem);
+      line-height: 1.45;
+      margin: 0;
+      min-height: 4.2em;
+      transition: transform 160ms ease, opacity 160ms ease, color 160ms ease;
+    }
+
+    .message.minimal {
+      min-height: 2.8em;
+      font-size: clamp(1rem, 4vw, 1.2rem);
+      color: var(--muted);
+    }
+
+    .message.pop {
+      animation: pop 260ms ease;
+    }
+
+    .count.pop {
+      animation: countPop 260ms ease;
+    }
+
+    .hint {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .done {
+      color: var(--accent);
+    }
+
+    .warning {
+      color: var(--danger);
+    }
+
+    @keyframes drift {
+      from {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      to {
+        transform: translate3d(12px, -14px, 0) scale(1.08);
+      }
+    }
+
+    @keyframes shimmer {
+      from {
+        transform: translateX(-120%);
+      }
+      to {
+        transform: translateX(120%);
+      }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes countPop {
+      0% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-2px) scale(1.06); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 560px) {
+      .eyebrow {
+        letter-spacing: 0.16em;
+      }
+
+      h1 {
+        font-size: clamp(2.05rem, 12vw, 3.3rem);
+      }
+
+      .subhead {
+        font-size: 0.98rem;
+        margin-bottom: 22px;
+      }
+
+      .summary {
+        font-size: 0.85rem;
+        padding: 9px 12px;
+      }
+
+      .stat {
+        min-height: 100px;
+      }
+
+      .message {
+        min-height: 4.8em;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .controls,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .controls > button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 10px;
+        place-items: start stretch;
+        overflow-y: auto;
+      }
+
+      .card {
+        width: 100%;
+        min-height: auto;
+        padding: 16px;
+        border-radius: 22px;
+        display: grid;
+        grid-template-rows: auto auto auto auto auto auto 1fr;
+        align-content: start;
+        gap: 10px;
+      }
+
+      .card::before,
+      body::before,
+      body::after {
+        opacity: 0.22;
+      }
+
+      .eyebrow,
+      .summary,
+      .subhead,
+      .hint {
+        margin-bottom: 0;
+      }
+
+      .summary {
+        display: none;
+      }
+
+      .subhead {
+        max-width: 24ch;
+        font-size: 0.94rem;
+        line-height: 1.45;
+      }
+
+      .count-stage {
+        gap: 6px;
+      }
+
+      .controls,
+      .stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .controls {
+        margin-bottom: 4px;
+      }
+
+      .controls > button {
+        min-width: 0;
+      }
+
+      .stat {
+        border-radius: 20px;
+        padding: 14px;
+        min-height: 88px;
+      }
+
+      .stat.count {
+        min-height: 150px;
+        justify-content: end;
+      }
+
+      .stat.count span {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+      }
+
+      .stat.count strong {
+        font-size: clamp(4.8rem, 28vw, 7.6rem);
+        line-height: 0.9;
+      }
+
+      .stat.target,
+      .stat.remaining {
+        min-height: 76px;
+      }
+
+      .stat.target strong,
+      .stat.remaining strong {
+        font-size: clamp(1.7rem, 10vw, 2.4rem);
+      }
+
+      .progress-wrap {
+        margin-bottom: 10px;
+      }
+
+      .progress-bar {
+        height: 12px;
+      }
+
+      .progress-wrap.compact {
+        margin-bottom: 8px;
+      }
+
+      .message,
+      .message.minimal {
+        min-height: auto;
+      }
+
+      .hint {
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition-duration: 0ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" aria-labelledby="title">
+    <p class="eyebrow">Press enter to climb</p>
+    <h1 id="title">One more rep, one more win.</h1>
+    <p class="summary">Target + Enter + Reset. Simple, fast, and a little too satisfying.</p>
+    <p class="subhead">
+      Set a target, press Enter to add one, and use Reset when you want to start over from zero. The page keeps the energy up with fresh prompts as you climb.
+    </p>
+
+    <div class="count-stage">
+      <div class="count-chip">Minimal mode</div>
+      <section class="controls" aria-label="Counter setup">
+        <label>
+          Target
+          <input id="targetInput" type="number" min="1" step="1" value="10" />
+        </label>
+        <button id="startButton" type="button">Reset</button>
+      </section>
+    </div>
+
+    <section class="stats" aria-label="Current counter status">
+      <div class="stat count">
+        <span>Current count</span>
+        <strong id="countDisplay">0</strong>
+      </div>
+      <div class="stat target">
+        <span>Target</span>
+        <strong id="targetDisplay">10</strong>
+      </div>
+      <div class="stat remaining">
+        <span>Remaining</span>
+        <strong id="remainingDisplay">10</strong>
+      </div>
+    </section>
+
+    <div class="progress-wrap compact">
+      <div class="progress-bar" aria-hidden="true">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <p class="hint" id="progressText">0% complete</p>
+    </div>
+
+    <p class="message minimal" id="message" aria-live="polite"></p>
+      <p class="hint">
+        Tip: press Enter anywhere to increment. Reset always drops you back to zero and keeps the same target.
+      </p>
+  </main>
+
+  <script>
+    const targetInput = document.getElementById("targetInput");
+    const startButton = document.getElementById("startButton");
+    const countDisplay = document.getElementById("countDisplay");
+    const targetDisplay = document.getElementById("targetDisplay");
+    const remainingDisplay = document.getElementById("remainingDisplay");
+    const progressFill = document.getElementById("progressFill");
+    const progressText = document.getElementById("progressText");
+    const message = document.getElementById("message");
+
+    const motivationSets = [
+      "Warm-up complete. Keep the rhythm.",
+      "Good pace. The next step is already yours.",
+      "Momentum matters. Stay with it.",
+      "You are closer than you were a moment ago.",
+      "Nice work. Another press, another point.",
+      "Consistency is winning right now.",
+      "The goal is getting smaller from here.",
+      "You can feel the finish line now.",
+      "Strong. Keep stacking the wins.",
+      "Almost there. Finish with intent.",
+    ];
+
+    const finishMessages = [
+      "Target reached. You did it.",
+      "Goal complete. That effort counted.",
+      "Done. Keep this momentum for the next round.",
+    ];
+
+    const state = {
+      count: 0,
+      target: 10,
+      started: false,
+    };
+
+    function clampInteger(value, fallback) {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function updateMessage() {
+      message.classList.remove("pop");
+
+      if (!state.started) {
+        message.textContent = "Set a target, then press Start / Reset to begin.";
+        message.className = "message minimal";
+        return;
+      }
+
+      if (state.count >= state.target) {
+        message.textContent = finishMessages[(state.target + state.count) % finishMessages.length];
+        message.className = "message minimal done";
+        requestAnimationFrame(() => message.classList.add("pop"));
+        return;
+      }
+
+      const progress = state.target > 0 ? state.count / state.target : 0;
+      const index = Math.min(motivationSets.length - 1, Math.floor(progress * motivationSets.length));
+      message.textContent = motivationSets[index];
+      message.className = "message minimal";
+      requestAnimationFrame(() => message.classList.add("pop"));
+    }
+
+    function updateUi() {
+      const remaining = Math.max(0, state.target - state.count);
+      const progress = state.target > 0 ? Math.min(1, state.count / state.target) : 1;
+
+      countDisplay.textContent = state.count;
+      targetDisplay.textContent = state.target;
+      remainingDisplay.textContent = remaining;
+      progressFill.style.width = `${progress * 100}%`;
+      progressText.textContent = `${Math.round(progress * 100)}% complete`;
+
+      updateMessage();
+    }
+
+    function resetCounter() {
+      const nextTarget = Math.max(1, clampInteger(targetInput.value, 10));
+
+      state.target = nextTarget;
+      state.count = 0;
+      state.started = true;
+      targetInput.value = String(state.target);
+      startButton.textContent = "Reset";
+      updateUi();
+    }
+
+    function incrementCounter() {
+      if (!state.started) {
+        resetCounter();
+      }
+
+      if (state.count >= state.target) {
+        updateUi();
+        return;
+      }
+
+      state.count++;
+      countDisplay.classList.remove("pop");
+      requestAnimationFrame(() => countDisplay.classList.add("pop"));
+      updateUi();
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      incrementCounter();
+    });
+
+    startButton.addEventListener("click", resetCounter);
+    targetInput.addEventListener("input", () => {
+      state.target = Math.max(1, clampInteger(targetInput.value, state.target));
+      if (state.count > state.target) {
+        state.count = state.target;
+      }
+      updateUi();
+    });
+
+    updateUi();
+  </script>
+</body>
+</html>

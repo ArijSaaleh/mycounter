@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,26 +10,30 @@
 <body>
   <main class="app-shell" aria-labelledby="title">
     <header class="hero">
-      <div class="eyebrow">Hourly moderation tracker</div>
       <div class="hero-copy">
-        <h1 id="title">Track each hour separately, edit the target on the fly, and stretch the shift when needed.</h1>
-        <p class="intro">
-          Use this as a practical work tracker for moderation. Every hour has its own target, AHT stays visible, and you can add more hours whenever the shift needs it.
-        </p>
+        <h1 id="title">Shift Tracker</h1>
+        <p class="intro hide-on-mobile">Set your target and track progress hourly.</p>
       </div>
       <div class="hero-pill" id="shiftState">Shift not started</div>
     </header>
 
     <section class="setup-panel" aria-label="Shift settings">
       <label class="field">
-        <span>AHT target in seconds</span>
+        <span>Shift hours (leave empty for single counter)</span>
+        <input id="hoursInput" type="number" min="0" step="1" placeholder="8" />
+      </label>
+      <label class="field">
+        <span>Target per item (AHT seconds)</span>
         <input id="ahtTargetInput" type="number" min="1" step="1" value="75" />
+      </label>
+      <label class="field">
+        <span>Goal count</span>
+        <input id="goalInput" type="number" min="1" step="1" value="35" />
       </label>
       <div class="setup-actions">
         <button id="startButton" type="button" class="primary">Start shift</button>
-        <button id="resetHourButton" type="button" class="ghost">Reset current hour</button>
-        <button id="addHourButton" type="button" class="ghost">Add hour</button>
-        <button id="resetShiftButton" type="button" class="ghost">Reset shift</button>
+        <button id="themeToggle" type="button" class="ghost">Dark mode</button>
+        <button id="resetButton" type="button" class="ghost">Reset</button>
       </div>
     </section>
 
@@ -70,11 +74,11 @@
       <p class="status-text" id="statusText">Start the shift to begin tracking the current hour.</p>
     </section>
 
-    <section class="hours-panel" aria-label="Hour targets">
+    <section class="hours-panel" id="hoursPanel" aria-label="Hour targets" style="display: none;">
       <div class="section-head">
         <div class="section-copy">
           <h2>Hour targets</h2>
-          <p>Edit every hour individually. Add more hours if the shift runs longer than planned.</p>
+          <p>Edit every hour individually.</p>
         </div>
         <p class="hours-summary" id="hoursSummary">8 hours configured</p>
       </div>

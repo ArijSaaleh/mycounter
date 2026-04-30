@@ -1,18 +1,14 @@
-const defaultHours = 8;
-const defaultHourTarget = 35;
-const hourMs = 60 * 60 * 1000;
-
 const ahtTargetInput = document.getElementById("ahtTargetInput");
+const goalInput = document.getElementById("goalInput");
+const hoursInput = document.getElementById("hoursInput");
+const hoursPanel = document.getElementById("hoursPanel");
 const startButton = document.getElementById("startButton");
-const resetHourButton = document.getElementById("resetHourButton");
-const addHourButton = document.getElementById("addHourButton");
-const resetShiftButton = document.getElementById("resetShiftButton");
+const resetButton = document.getElementById("resetButton");
 const logButton = document.getElementById("logButton");
 const shiftState = document.getElementById("shiftState");
 const itemsThisHour = document.getElementById("itemsThisHour");
 const currentAht = document.getElementById("currentAht");
 const shiftTotal = document.getElementById("shiftTotal");
-const hourClock = document.getElementById("hourClock");
 const hourTargetLabel = document.getElementById("hourTargetLabel");
 const ahtStatus = document.getElementById("ahtStatus");
 const shiftProgress = document.getElementById("shiftProgress");
@@ -25,28 +21,17 @@ const hoursSummary = document.getElementById("hoursSummary");
 
 const state = {
   started: false,
-  shiftComplete: false,
   shiftStartTs: 0,
-  currentHourStartTs: 0,
   currentHourIndex: 0,
-  handledShiftTotal: 0,
+  handledTotal: 0,
   ahtTargetSeconds: 75,
-  hours: createInitialHours(defaultHours),
+  goal: 35,
+  numHours: 0,
+  hours: [],
+  isSingleMode: true,
 };
 
-function createHour(target = defaultHourTarget) {
-  return {
-    target,
-    count: 0,
-    closed: false,
-    metTarget: false,
-  };
-}
-
-function createInitialHours(hourCount) {
-  return Array.from({ length: hourCount }, () => createHour());
-}
-
+// Utilities
 function parsePositiveInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
@@ -91,211 +76,99 @@ function formatSeconds(seconds) {
   return `${minutes}m ${String(remainingSeconds).padStart(2, "0")}s`;
 }
 
-function totalTarget() {
-  return state.hours.reduce((sum, hour) => sum + hour.target, 0);
-}
-
-function currentHour() {
-  return state.hours[state.currentHourIndex] ?? null;
-}
-
-function currentHourLabel() {
-  return `Hour ${Math.min(state.currentHourIndex + 1, state.hours.length)} of ${state.hours.length}`;
-}
-
-function buildHourCard(hour, index) {
-  const card = document.createElement("article");
-  card.className = "hour-card";
-  card.dataset.hourIndex = String(index);
-
-  card.innerHTML = `
-    <div class="hour-card__head">
-      <span>Hour ${index + 1}</span>
-      <span class="hour-badge" data-role="hour-badge">Waiting</span>
-    </div>
-    <label class="field hour-field">
-      <span>Target</span>
-      <input data-role="hour-target" type="number" min="1" step="1" value="${hour.target}" />
-    </label>
-    <div class="hour-card__metrics">
-      <div>
-        <span>Count</span>
-        <strong data-role="hour-count">0</strong>
-      </div>
-      <div>
-        <span>Progress</span>
-        <strong data-role="hour-progress">0%</strong>
-      </div>
-    </div>
-    <div class="hour-track" aria-hidden="true">
-      <div class="hour-track__fill" data-role="hour-fill"></div>
-    </div>
-    <p class="hour-meta" data-role="hour-meta">Waiting for the shift to reach this hour.</p>
-  `;
-
-  return card;
-}
-
-function renderHours() {
-  hoursGrid.innerHTML = "";
-  state.hours.forEach((hour, index) => {
-    hoursGrid.appendChild(buildHourCard(hour, index));
-  });
-}
-
-function syncHourCards() {
-  const cards = hoursGrid.querySelectorAll(".hour-card");
-
-  cards.forEach((card, index) => {
-    const hour = state.hours[index];
-    const countEl = card.querySelector('[data-role="hour-count"]');
-    const progressEl = card.querySelector('[data-role="hour-progress"]');
-    const fillEl = card.querySelector('[data-role="hour-fill"]');
-    const badgeEl = card.querySelector('[data-role="hour-badge"]');
-    const metaEl = card.querySelector('[data-role="hour-meta"]');
-    const targetInput = card.querySelector('[data-role="hour-target"]');
-    const isCurrent = state.started && !state.shiftComplete && index === state.currentHourIndex;
-    const isPast = index < state.currentHourIndex;
-    const progress = Math.min(1, hour.count / Math.max(1, hour.target));
-    const percent = Math.round(progress * 100);
-
-    if (targetInput !== document.activeElement) {
-      targetInput.value = String(hour.target);
-    }
-
-    countEl.textContent = String(hour.count);
-    progressEl.textContent = `${percent}%`;
-    fillEl.style.width = `${percent}%`;
-
-    card.classList.toggle("active", isCurrent);
-    card.classList.toggle("complete", hour.closed && hour.metTarget);
-    card.classList.toggle("missed", hour.closed && !hour.metTarget);
-    card.classList.toggle("current", isCurrent && !hour.closed);
-
-    if (!state.started) {
-      badgeEl.textContent = "Waiting";
-      metaEl.textContent = "Set your targets and start the shift.";
-    } else if (isCurrent) {
-      badgeEl.textContent = hour.metTarget ? "Target met" : "Live";
-      metaEl.textContent = hour.metTarget
-        ? "This hour is already ahead of target."
-        : `${Math.max(0, hour.target - hour.count)} left for this hour.`;
-    } else if (isPast) {
-      badgeEl.textContent = hour.metTarget ? "Complete" : "Missed";
-      metaEl.textContent = hour.metTarget ? "Closed above target." : "Closed under target.";
-    } else {
-      badgeEl.textContent = "Upcoming";
-      metaEl.textContent = "Waiting for the shift to reach this hour.";
-    }
-  });
-}
-
 function setMessage(text, type = "neutral") {
   statusText.textContent = text;
   statusText.classList.toggle("success", type === "success");
   statusText.classList.toggle("warning", type === "warning");
 }
 
-function clearShiftProgress() {
-  state.shiftComplete = false;
-  state.shiftStartTs = 0;
-  state.currentHourStartTs = 0;
-  state.currentHourIndex = 0;
-  state.handledShiftTotal = 0;
+// Setup and initialization
+function setupMode() {
+  const hrs = Number.parseInt(hoursInput.value, 10) || 0;
+  state.numHours = hrs;
+  state.isSingleMode = hrs === 0;
+  state.goal = Number.parseInt(goalInput.value, 10) || 35;
+  state.ahtTargetSeconds = Number.parseInt(ahtTargetInput.value, 10) || 75;
 
-  state.hours.forEach((hour) => {
-    hour.count = 0;
-    hour.closed = false;
-    hour.metTarget = false;
+  if (state.isSingleMode) {
+    state.hours = [];
+    hoursPanel.style.display = "none";
+  } else {
+    state.hours = Array.from({ length: hrs }, () => ({ target: state.goal, count: 0 }));
+    hoursPanel.style.display = "block";
+    renderHours();
+  }
+}
+
+// Rendering
+function renderHours() {
+  hoursGrid.innerHTML = "";
+  state.hours.forEach((hour, index) => {
+    const card = document.createElement("article");
+    card.className = "hour-card";
+    card.dataset.hourIndex = String(index);
+    card.innerHTML = `
+      <div class="hour-card__head">
+        <span>Hour ${index + 1}</span>
+      </div>
+      <div class="hour-card__metrics">
+        <div>
+          <span>Count</span>
+          <strong>${hour.count}</strong>
+        </div>
+        <div>
+          <span>Target</span>
+          <strong>${hour.target}</strong>
+        </div>
+      </div>
+      <div class="hour-track" aria-hidden="true">
+        <div class="hour-track__fill" style="width: ${Math.round(Math.min(1, hour.count / Math.max(1, hour.target)) * 100)}%"></div>
+      </div>
+    `;
+    hoursGrid.appendChild(card);
+  });
+  hoursSummary.textContent = `${state.hours.length} hours`;
+}
+
+function syncHourCards() {
+  const cards = hoursGrid.querySelectorAll(".hour-card");
+  cards.forEach((card, index) => {
+    const hour = state.hours[index];
+    if (hour) {
+      const progress = Math.round(Math.min(1, hour.count / Math.max(1, hour.target)) * 100);
+      const fill = card.querySelector(".hour-track__fill");
+      if (fill) fill.style.width = `${progress}%`;
+      const metricsDiv = card.querySelector(".hour-card__metrics");
+      if (metricsDiv) {
+        const strongEls = metricsDiv.querySelectorAll("strong");
+        if (strongEls[0]) strongEls[0].textContent = String(hour.count);
+      }
+    }
   });
 }
 
+// Shift management
 function startShift() {
-  state.ahtTargetSeconds = parsePositiveInteger(ahtTargetInput.value, state.ahtTargetSeconds);
-  ahtTargetInput.value = String(state.ahtTargetSeconds);
-
-  clearShiftProgress();
-
-  const now = Date.now();
-  state.started = true;
-  state.shiftStartTs = now;
-  state.currentHourStartTs = now;
-
-  logButton.disabled = false;
-  resetHourButton.disabled = false;
-  addHourButton.disabled = false;
-  resetShiftButton.disabled = false;
-  startButton.textContent = "Restart shift";
-
-  setMessage("Shift started. Log each moderation action with Enter.");
-  updateUi();
-}
-
-function resetCurrentHour() {
   if (!state.started) {
-    startShift();
-    return;
-  }
-
-  const hour = currentHour();
-  if (!hour) {
-    return;
-  }
-
-  state.handledShiftTotal = Math.max(0, state.handledShiftTotal - hour.count);
-  hour.count = 0;
-  hour.closed = false;
-  hour.metTarget = false;
-  state.currentHourStartTs = Date.now();
-  setMessage(`Hour ${state.currentHourIndex + 1} reset. Build the pace again.`);
-  updateUi();
-}
-
-function resetShift() {
-  clearShiftProgress();
-  state.started = false;
-  startButton.textContent = "Start shift";
-  logButton.disabled = true;
-  resetHourButton.disabled = true;
-  setMessage("Shift reset. Edit the hours and start again when you are ready.");
-  updateUi();
-}
-
-function addHour() {
-  const lastTarget = state.hours[state.hours.length - 1]?.target ?? defaultHourTarget;
-  state.hours.push(createHour(lastTarget));
-
-  if (state.shiftComplete) {
-    state.shiftComplete = false;
-    state.currentHourIndex = state.hours.length - 1;
-    state.currentHourStartTs = Date.now();
-  }
-
-  renderHours();
-  syncHourCards();
-  updateUi();
-  setMessage(`Added Hour ${state.hours.length}.`);
-}
-
-function advanceHour(now) {
-  while (state.started && !state.shiftComplete && now - state.currentHourStartTs >= hourMs) {
-    const hour = currentHour();
-    if (hour) {
-      hour.closed = true;
-      hour.metTarget = hour.count >= hour.target;
+    setupMode();
+    state.started = true;
+    state.shiftStartTs = Date.now();
+    state.currentHourIndex = 0;
+    logButton.disabled = false;
+    resetButton.disabled = false;
+    startButton.textContent = "Restart shift";
+    setMessage("Shift started. Press Enter to log items.");
+  } else {
+    state.started = false;
+    state.handledTotal = 0;
+    if (!state.isSingleMode) {
+      state.hours.forEach(h => { h.count = 0; });
+      renderHours();
     }
-
-    if (state.currentHourIndex >= state.hours.length - 1) {
-      state.shiftComplete = true;
-      logButton.disabled = true;
-      setMessage("Shift complete. Add more hours or reset the shift to start a new run.", "success");
-      break;
-    }
-
-    state.currentHourIndex += 1;
-    state.currentHourStartTs += hourMs;
-    setMessage(`Hour ${state.currentHourIndex + 1} is live. Back to zero for the next lane.`);
+    startButton.textContent = "Start shift";
+    setMessage("Shift reset.");
   }
+  updateUi();
 }
 
 function logItem() {
@@ -304,91 +177,45 @@ function logItem() {
     return;
   }
 
-  if (state.shiftComplete) {
-    setMessage("Shift is complete. Restart it to log more items.", "warning");
-    return;
+  state.handledTotal += 1;
+  
+  if (!state.isSingleMode) {
+    const hour = state.hours[state.currentHourIndex];
+    if (hour) {
+      hour.count += 1;
+    }
   }
 
-  const hour = currentHour();
-  if (!hour) {
-    return;
-  }
-
-  hour.count += 1;
-  state.handledShiftTotal += 1;
-  hour.metTarget = hour.count >= hour.target;
-
-  if (hour.count >= hour.target) {
-    const overBy = hour.count - hour.target;
-    setMessage(
-      overBy > 0
-        ? `Hour ${state.currentHourIndex + 1} is ahead by ${overBy}.`
-        : `Target hit for hour ${state.currentHourIndex + 1}. Keep the momentum.`,
-      "success"
-    );
-  } else {
-    const remaining = Math.max(0, hour.target - hour.count);
-    setMessage(`${remaining} more to hit Hour ${state.currentHourIndex + 1}.`);
-  }
-
+  const remaining = Math.max(0, state.goal - state.handledTotal);
+  setMessage(remaining > 0 ? `${remaining} left to reach ${state.goal}.` : `Target hit! 🎉`, "success");
   updateUi();
 }
 
-function updateHourMetrics(now) {
-  const hour = currentHour();
-  const activeHourElapsed = state.started ? now - state.currentHourStartTs : 0;
-  const shiftElapsed = state.started ? now - state.shiftStartTs : 0;
-  const currentAhtSeconds = hour && hour.count > 0 ? activeHourElapsed / 1000 / hour.count : 0;
-  const shiftAhtSeconds = state.handledShiftTotal > 0 ? shiftElapsed / 1000 / state.handledShiftTotal : 0;
-  const remainingInHour = Math.max(0, hourMs - activeHourElapsed);
-  const currentTarget = hour?.target ?? defaultHourTarget;
-  const currentCount = hour?.count ?? 0;
-
-  itemsThisHour.textContent = String(currentCount);
-  currentAht.textContent = formatSeconds(currentAhtSeconds);
-  shiftTotal.textContent = String(state.handledShiftTotal);
-  hourClock.textContent = formatDuration(remainingInHour);
-  hourTargetLabel.textContent = `Target: ${currentTarget}`;
-  ahtStatus.textContent = `Goal: ${state.ahtTargetSeconds}s | Shift AHT: ${formatSeconds(shiftAhtSeconds)}`;
-  shiftProgress.textContent = state.started
-    ? `${currentHourLabel()} | ${formatDuration(shiftElapsed)} elapsed`
-    : `Hour 1 of ${state.hours.length}`;
-  paceLabel.textContent = state.started
-    ? currentAhtSeconds > 0
-      ? `Pace: ${formatSeconds(currentAhtSeconds)} per item`
-      : "Press Enter to log the first item"
-    : "Press Start shift to begin tracking";
-  shiftState.textContent = state.started
-    ? state.shiftComplete
-      ? "Shift complete"
-      : `Hour ${state.currentHourIndex + 1} live`
-    : "Shift not started";
-
-  const progressPercent = Math.round(Math.min(1, currentCount / Math.max(1, currentTarget)) * 100);
-  hourProgressFill.style.width = `${progressPercent}%`;
-  goalBadge.textContent = `${state.handledShiftTotal} / ${totalTarget()} completed`;
-}
-
+// UI updates
 function updateUi() {
   const now = Date.now();
+  const shiftElapsed = state.started ? now - state.shiftStartTs : 0;
+  const ahtSeconds = state.handledTotal > 0 ? shiftElapsed / 1000 / state.handledTotal : 0;
+  const remaining = Math.max(0, state.goal - state.handledTotal);
 
-  if (state.started && !state.shiftComplete) {
-    advanceHour(now);
-  }
+  itemsThisHour.textContent = String(state.handledTotal);
+  currentAht.textContent = formatSeconds(ahtSeconds);
+  shiftTotal.textContent = String(state.handledTotal);
+  hourTargetLabel.textContent = `Goal: ${state.goal}`;
+  ahtStatus.textContent = `Target AHT: ${state.ahtTargetSeconds}s | Current: ${formatSeconds(ahtSeconds)}`;
+  shiftProgress.textContent = state.started ? formatDuration(shiftElapsed) + " elapsed" : "Not started";
+  paceLabel.textContent = state.started ? `${remaining} left to hit ${state.goal}` : "Set up and start to begin";
 
-  syncHourCards();
-  updateHourMetrics(now);
-  hoursSummary.textContent = `${state.hours.length} hours configured`;
+  shiftState.textContent = state.started
+    ? state.handledTotal >= state.goal ? "Goal reached! 🎉" : `${state.handledTotal} / ${state.goal}`
+    : "Ready";
 
-  if (!state.started) {
-    startButton.textContent = "Start shift";
-    resetHourButton.disabled = true;
-    logButton.disabled = true;
-    addHourButton.disabled = false;
-    resetShiftButton.disabled = false;
-    setMessage("Set your targets, then start the shift.");
-  } else {
-    startButton.textContent = "Restart shift";
+  const progressPercent = Math.round(Math.min(1, state.handledTotal / Math.max(1, state.goal)) * 100);
+  hourProgressFill.style.width = `${progressPercent}%`;
+  goalBadge.textContent = `${state.handledTotal} / ${state.goal}`;
+
+  if (!state.isSingleMode) {
+    syncHourCards();
   }
 }
 
@@ -406,36 +233,62 @@ function handleKeydown(event) {
   logItem();
 }
 
-hoursGrid.addEventListener("input", (event) => {
-  const targetInput = event.target;
-  if (!targetInput.matches('[data-role="hour-target"]')) {
-    return;
+// Event listeners
+startButton.addEventListener("click", startShift);
+resetButton.addEventListener("click", () => {
+  state.started = false;
+  state.handledTotal = 0;
+  if (!state.isSingleMode) {
+    state.hours.forEach(h => { h.count = 0; });
+    renderHours();
   }
-
-  const hourIndex = Number(targetInput.closest(".hour-card")?.dataset.hourIndex);
-  const hour = state.hours[hourIndex];
-  if (!hour) {
-    return;
-  }
-
-  hour.target = parsePositiveInteger(targetInput.value, hour.target);
-  targetInput.value = String(hour.target);
-  syncHourCards();
   updateUi();
 });
-
-renderHours();
-updateUi();
-
-startButton.addEventListener("click", startShift);
-resetHourButton.addEventListener("click", resetCurrentHour);
-resetShiftButton.addEventListener("click", resetShift);
-addHourButton.addEventListener("click", addHour);
 logButton.addEventListener("click", logItem);
+
+hoursInput.addEventListener("input", setupMode);
+goalInput.addEventListener("input", setupMode);
 ahtTargetInput.addEventListener("input", () => {
   state.ahtTargetSeconds = parsePositiveInteger(ahtTargetInput.value, state.ahtTargetSeconds);
   ahtTargetInput.value = String(state.ahtTargetSeconds);
   updateUi();
 });
+
+hoursGrid.addEventListener("click", (event) => {
+  const card = event.target.closest(".hour-card");
+  if (!card) return;
+  const hourIndex = Number(card.dataset.hourIndex);
+  state.currentHourIndex = hourIndex;
+  syncHourCards();
+});
+
+// Theme
+const themeToggle = document.getElementById("themeToggle");
+
+function applyTheme(theme) {
+  document.documentElement.classList.remove("light", "dark");
+  document.documentElement.classList.add(theme);
+  localStorage.setItem("theme", theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved === "light") {
+    localStorage.setItem("theme", "dark");
+  }
+  applyTheme("dark");
+}
+
+themeToggle?.addEventListener("click", () => {
+  applyTheme("dark");
+});
+
+initTheme();
+
+// Initial setup
+renderHours();
+updateUi();
+
+// Periodic updates
 document.addEventListener("keydown", handleKeydown);
 setInterval(updateUi, 1000);

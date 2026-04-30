@@ -1,4 +1,4 @@
-:root {
+:root.dark {
   color-scheme: dark;
   --bg: #07111f;
   --bg-2: #11213d;
@@ -112,9 +112,24 @@ body::after {
 .hero {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr auto;
-  align-items: start;
+  grid-template-columns: 1fr;
+  align-items: center;
   margin-bottom: 20px;
+}
+
+.hide-on-mobile {
+  display: none;
+}
+
+@media (min-width: 760px) {
+  .hide-on-mobile {
+    display: block;
+  }
+  
+  .hero {
+    grid-template-columns: 1fr auto;
+    align-items: start;
+  }
 }
 
 .eyebrow {
@@ -385,6 +400,155 @@ small {
   color: var(--danger);
 }
 
+.hours-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.section-copy h2 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.section-copy p {
+  line-height: 1.5;
+  max-width: 66ch;
+  color: var(--muted);
+}
+
+.hours-summary {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.hour-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  min-height: 210px;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.hour-card.active {
+  border-color: rgba(124, 247, 194, 0.35);
+  box-shadow: 0 12px 28px rgba(124, 247, 194, 0.08);
+  transform: translateY(-1px);
+}
+
+.hour-card.complete {
+  border-color: rgba(15, 118, 110, 0.18);
+}
+
+.hour-card.missed {
+  border-color: rgba(255, 142, 163, 0.18);
+}
+
+.hour-card__head,
+.hour-card__metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hour-card__head span:first-child {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hour-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.hour-field {
+  gap: 6px;
+}
+
+.hour-card__metrics div {
+  display: grid;
+  gap: 4px;
+}
+
+.hour-card__metrics span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.hour-card__metrics strong,
+.hour-card__metrics input {
+  font-size: 1.3rem;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.hour-card__metrics input {
+  width: 100%;
+  max-width: 120px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.hour-track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hour-track__fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-3), var(--accent));
+}
+
+.hour-meta {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  min-height: 2.7em;
+  color: var(--muted);
+}
+
+.hour-card.complete .hour-badge,
+.hour-card.complete .hour-card__metrics strong {
+  color: var(--good);
+}
+
+.hour-card.missed .hour-badge,
+.hour-card.missed .hour-card__metrics strong {
+  color: var(--danger);
+}
+
 .timeline {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
@@ -400,6 +564,13 @@ small {
   display: grid;
   gap: 8px;
   align-content: start;
+}
+
+.hour-card.selected,
+.hour-block.selected {
+  border-color: rgba(124, 247, 194, 0.48);
+  box-shadow: 0 10px 30px rgba(124, 247, 194, 0.06);
+  transform: translateY(-2px);
 }
 
 .hour-block .label {
@@ -508,42 +679,111 @@ small {
   }
 }
 
+@media (max-width: 760px) {
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+  }
+
+  .intro {
+    font-size: 0.95rem;
+  }
+
+  .metric-card strong {
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+  }
+
+  .hero-metric strong {
+    font-size: clamp(2rem, 5vw, 3.6rem);
+  }
+
+  .field {
+    font-size: 0.82rem;
+  }
+
+  .quick-actions .hint {
+    font-size: 0.85rem;
+  }
+
+  .section-copy h2 {
+    font-size: 0.92rem;
+  }
+
+  .section-copy p {
+    font-size: 0.92rem;
+  }
+}
+
 @media (max-width: 520px) {
   body {
     padding: 10px;
   }
 
   .app-shell {
-    padding: 16px;
-    border-radius: 22px;
+    padding: 14px;
+    border-radius: 20px;
   }
 
   h1 {
-    font-size: clamp(2rem, 11vw, 3rem);
+    font-size: 1.5rem;
   }
 
   .intro {
-    font-size: 0.96rem;
+    font-size: 0.9rem;
   }
 
   .hero-metric,
   .metric-card,
   .progress-panel,
-  .timeline-panel {
-    border-radius: 20px;
-    padding: 15px;
+  .timeline-panel,
+  .hours-panel {
+    border-radius: 18px;
+    padding: 12px;
   }
 
   .hero-metric {
-    min-height: 148px;
+    min-height: 120px;
+  }
+
+  .metric-card {
+    min-height: 110px;
+    padding: 12px;
   }
 
   .hero-metric strong {
-    font-size: clamp(3rem, 19vw, 5rem);
+    font-size: 2.2rem;
+  }
+
+  .metric-card strong {
+    font-size: 1.6rem;
+  }
+
+  .field {
+    font-size: 0.78rem;
+  }
+
+  .quick-actions .hint {
+    font-size: 0.8rem;
+  }
+
+  .section-copy h2 {
+    font-size: 0.88rem;
+  }
+
+  .section-copy p {
+    font-size: 0.88rem;
+  }
+
+  .hour-card {
+    min-height: 180px;
+    padding: 12px;
   }
 
   .hour-block {
-    min-height: 82px;
+    min-height: 72px;
+  }
+
+  .setup-panel {
+    gap: 10px;
   }
 }
 
@@ -554,303 +794,6 @@ small {
     animation: none !important;
     transition-duration: 0ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-:root {
-  --bg: #f3f6fb;
-  --bg-2: #e8eef7;
-  --panel: rgba(255, 255, 255, 0.82);
-  --panel-strong: rgba(255, 255, 255, 0.95);
-  --line: rgba(15, 23, 42, 0.08);
-  --line-strong: rgba(15, 23, 42, 0.14);
-  --text: #0f172a;
-  --muted: #5b6476;
-  --accent: #0f766e;
-  --accent-2: #2563eb;
-  --accent-3: #475569;
-  --danger: #b91c1c;
-  --good: #166534;
-  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-}
-
-body {
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  background:
-    radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.08), transparent 18%),
-    radial-gradient(circle at 88% 12%, rgba(15, 118, 110, 0.08), transparent 18%),
-    linear-gradient(180deg, var(--bg), var(--bg-2));
-}
-
-body::before,
-body::after {
-  opacity: 0.18;
-  filter: blur(18px);
-}
-
-.app-shell {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.78)),
-    var(--panel);
-  border-color: rgba(15, 23, 42, 0.08);
-  box-shadow: var(--shadow);
-}
-
-.app-shell::before {
-  opacity: 0.22;
-  background-image:
-    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
-}
-
-.hero-pill {
-  background: rgba(15, 118, 110, 0.08);
-  border-color: rgba(15, 118, 110, 0.12);
-  color: var(--accent);
-}
-
-.hero-pill::before {
-  box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.08);
-}
-
-.intro,
-.field,
-.progress-head span,
-.timeline-head span,
-.quick-actions .hint,
-.status-text,
-.hour-badge,
-.hour-meta,
-.hours-summary,
-.section-copy p,
-.metric-card span,
-.metric-card small,
-.hero-metric span,
-.hero-metric small {
-  color: var(--muted);
-}
-
-.setup-panel,
-.dashboard,
-.progress-panel,
-.hours-panel,
-.quick-actions {
-  margin-bottom: 16px;
-}
-
-.setup-panel {
-  grid-template-columns: minmax(240px, 320px) 1fr;
-  align-items: end;
-}
-
-.setup-panel,
-.progress-panel,
-.hours-panel,
-.quick-actions,
-.hero-metric,
-.metric-card {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
-}
-
-button.primary {
-  background: linear-gradient(135deg, var(--accent), #13807a);
-  color: #f8fafc;
-  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.18);
-}
-
-button.ghost {
-  background: rgba(15, 23, 42, 0.03);
-  border-color: rgba(15, 23, 42, 0.08);
-  color: var(--text);
-}
-
-input {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(15, 23, 42, 0.12);
-}
-
-input:focus {
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-}
-
-.hero-metric,
-.metric-card,
-.progress-panel,
-.hours-panel,
-.quick-actions {
-  border-radius: 22px;
-}
-
-.hero-metric strong,
-.metric-card strong {
-  color: var(--text);
-}
-
-.progress-track,
-.hour-track {
-  background: rgba(15, 23, 42, 0.06);
-  border-color: rgba(15, 23, 42, 0.08);
-}
-
-.progress-fill,
-.hour-track__fill {
-  background: linear-gradient(90deg, var(--accent-2), var(--accent));
-}
-
-.hours-panel {
-  padding: 18px;
-}
-
-.section-head {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.section-copy h2 {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
-}
-
-.section-copy p {
-  line-height: 1.5;
-  max-width: 66ch;
-}
-
-.hours-summary {
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.hours-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.hour-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  padding: 14px;
-  display: grid;
-  gap: 12px;
-  min-height: 210px;
-  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
-}
-
-.hour-card.active {
-  border-color: rgba(37, 99, 235, 0.2);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
-  transform: translateY(-1px);
-}
-
-.hour-card.complete {
-  border-color: rgba(15, 118, 110, 0.18);
-}
-
-.hour-card.missed {
-  border-color: rgba(185, 28, 28, 0.18);
-}
-
-.hour-card__head,
-.hour-card__metrics {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.hour-card__head span:first-child {
-  font-weight: 700;
-  color: var(--text);
-}
-
-.hour-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.05);
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.hour-field {
-  gap: 6px;
-}
-
-.hour-card__metrics div {
-  display: grid;
-  gap: 4px;
-}
-
-.hour-card__metrics span {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-.hour-card__metrics strong {
-  font-size: 1.3rem;
-  color: var(--text);
-}
-
-.hour-track {
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.hour-track__fill {
-  height: 100%;
-  width: 0;
-  border-radius: inherit;
-}
-
-.hour-meta {
-  font-size: 0.88rem;
-  line-height: 1.45;
-  min-height: 2.7em;
-}
-
-.hour-card.complete .hour-badge,
-.hour-card.complete .hour-card__metrics strong {
-  color: var(--good);
-}
-
-.hour-card.missed .hour-badge,
-.hour-card.missed .hour-card__metrics strong {
-  color: var(--danger);
-}
-
-.quick-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.quick-actions .hint {
-  max-width: 52ch;
-}
-
-@media (max-width: 760px) {
-  .section-head,
-  .quick-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .hours-grid {
-    grid-template-columns: 1fr;
   }
 }
 

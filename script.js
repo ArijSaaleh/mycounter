@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const STORAGE_KEY = 'moderation-shift-tracker-state';
     const hoursInput = document.getElementById('hoursInput');
     const goalInput = document.getElementById('goalInput');
     const ahtTargetInput = document.getElementById('ahtTargetInput');
@@ -36,6 +37,76 @@ document.addEventListener('DOMContentLoaded', () => {
         hours: [],
         entries: []
     };
+
+    function persistState() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                started: state.started,
+                shiftStartTs: state.shiftStartTs,
+                handledTotal: state.handledTotal,
+                goal: state.goal,
+                ahtTargetSeconds: state.ahtTargetSeconds,
+                numHours: state.numHours,
+                isSingleMode: state.isSingleMode,
+                currentHourIndex: state.currentHourIndex,
+                lastLogTs: state.lastLogTs,
+                hours: state.hours,
+                hoursInput: hoursInput.value,
+                goalInput: goalInput.value,
+                ahtTargetInput: ahtTargetInput.value
+            }));
+        } catch {
+            // Ignore storage failures and keep the tracker usable.
+        }
+    }
+
+    function restoreState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return;
+            }
+
+            const saved = JSON.parse(raw);
+            if (saved && typeof saved === 'object') {
+                if (Array.isArray(saved.hours)) {
+                    state.hours = saved.hours.map(hour => ({
+                        target: parsePositiveInteger(hour?.target, 120) || 120,
+                        count: Math.max(0, parsePositiveInteger(hour?.count, 0))
+                    }));
+                }
+
+                if (typeof saved.started === 'boolean') {
+                    state.started = saved.started;
+                }
+
+                state.shiftStartTs = parsePositiveInteger(saved.shiftStartTs, 0);
+                state.handledTotal = Math.max(0, parsePositiveInteger(saved.handledTotal, 0));
+                state.goal = Math.max(1, parsePositiveInteger(saved.goal, 120) || 120);
+                state.ahtTargetSeconds = Math.max(1, parsePositiveInteger(saved.ahtTargetSeconds, 9) || 9);
+                state.numHours = Math.max(0, parsePositiveInteger(saved.numHours, state.hours.length));
+                state.isSingleMode = state.numHours === 0;
+                state.currentHourIndex = Math.max(0, parsePositiveInteger(saved.currentHourIndex, 0));
+                state.lastLogTs = parsePositiveInteger(saved.lastLogTs, 0);
+
+                if (typeof saved.hoursInput === 'string') {
+                    hoursInput.value = saved.hoursInput;
+                }
+
+                if (typeof saved.goalInput === 'string') {
+                    goalInput.value = saved.goalInput;
+                }
+
+                if (typeof saved.ahtTargetInput === 'string') {
+                    ahtTargetInput.value = saved.ahtTargetInput;
+                }
+
+                startButton.textContent = state.started ? 'Restart shift' : 'Start shift';
+            }
+        } catch {
+            // Ignore bad stored data and fall back to defaults.
+        }
+    }
 
     function recalculateHandledTotal() {
         state.handledTotal = state.hours.reduce((sum, hour) => sum + hour.count, 0);
@@ -276,6 +347,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.isSingleMode) {
             syncHourCards();
         }
+
+        persistState();
     }
 
     function startShift() {
@@ -424,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logButton.addEventListener('click', logItem);
     decreaseButton?.addEventListener('click', decreaseItem);
 
+    restoreState();
     setupMode();
     updateUi();
     document.addEventListener('keydown', handleKeydown);

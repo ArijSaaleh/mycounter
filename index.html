@@ -1,94 +1,115 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Moderation Shift Tracker</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="script.js" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moderation Shift Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
 </head>
 <body>
-  <main class="app-shell" aria-labelledby="title">
-    <header class="hero">
-      <div class="hero-copy">
-        <h1 id="title">Shift Tracker</h1>
-        <p class="intro hide-on-mobile">Set your target and track progress hourly.</p>
-      </div>
-      <div class="hero-pill" id="shiftState">Shift not started</div>
-    </header>
+    <main class="app-shell" aria-labelledby="title">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">Moderation shift tracker</p>
+                <h1 id="title">Track shifts with one clean dashboard</h1>
+                <p class="intro">Use single-counter mode for a simple target, or set shift hours to unlock per-hour cards, live pacing, and compact production metrics.</p>
+            </div>
+            <div class="hero-pill" id="shiftState" aria-live="polite">Ready</div>
+        </header>
 
-    <section class="setup-panel" aria-label="Shift settings">
-      <label class="field">
-        <span>Shift hours (leave empty for single counter)</span>
-        <input id="hoursInput" type="number" min="0" step="1" placeholder="8" />
-      </label>
-      <label class="field">
-        <span>Target per item (AHT seconds)</span>
-        <input id="ahtTargetInput" type="number" min="1" step="1" value="75" />
-      </label>
-      <label class="field">
-        <span>Goal count</span>
-        <input id="goalInput" type="number" min="1" step="1" value="35" />
-      </label>
-      <div class="setup-actions">
-        <button id="startButton" type="button" class="primary">Start shift</button>
-        <button id="themeToggle" type="button" class="ghost">Dark mode</button>
-        <button id="resetButton" type="button" class="ghost">Reset</button>
-      </div>
-    </section>
+        <section class="setup-panel" aria-label="Shift settings">
+            <label class="field">
+                <span>Shift hours</span>
+                <input id="hoursInput" type="number" min="0" step="1" value="8" />
+                <small>Use 0 for single counter mode.</small>
+            </label>
+            <label class="field">
+                <span>Goal count</span>
+                <input id="goalInput" type="number" min="1" step="1" value="120" />
+                <small>Used as the default target per hour in shift mode.</small>
+            </label>
+            <label class="field">
+                <span>AHT target seconds</span>
+                <input id="ahtTargetInput" type="number" min="1" step="1" value="9" />
+                <small>Shows how current pace compares with your target.</small>
+            </label>
+            <div class="setup-actions">
+                <button id="startButton" type="button" class="primary">Start shift</button>
+                <button id="resetButton" type="button" class="ghost">Reset</button>
+            </div>
+        </section>
 
-    <section class="dashboard" aria-label="Live productivity stats">
-      <article class="hero-metric count-card">
-        <span>Handled in current hour</span>
-        <strong id="itemsThisHour">0</strong>
-        <small id="hourTargetLabel">Target: 35</small>
-      </article>
+        <section class="dashboard" aria-label="Live productivity stats">
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-icon">HC</div>
+                    <div class="metric-content">
+                        <span class="metric-label">Handled</span>
+                        <strong id="itemsThisHour">0</strong>
+                        <small id="hourTargetLabel">Target: 120</small>
+                        <div class="metric-actions" aria-label="Handled controls">
+                            <button id="decreaseButton" type="button" class="ghost counter-btn">-</button>
+                            <button id="logButton" type="button" class="primary counter-btn">+</button>
+                        </div>
+                    </div>
+                </div>
 
-      <article class="metric-card">
-        <span>Current AHT</span>
-        <strong id="currentAht">0s</strong>
-        <small id="ahtStatus">Goal: 75s</small>
-      </article>
+                <div class="metric-item">
+                    <div class="metric-icon">AT</div>
+                    <div class="metric-content">
+                        <span class="metric-label">AHT</span>
+                        <strong id="currentAht">9s</strong>
+                        <small id="ahtStatus">Target: 9s</small>
+                    </div>
+                </div>
 
-      <article class="metric-card">
-        <span>Shift total</span>
-        <strong id="shiftTotal">0</strong>
-        <small id="shiftProgress">Hour 1 of 8</small>
-      </article>
+                <div class="metric-item">
+                    <div class="metric-icon">Σ</div>
+                    <div class="metric-content">
+                        <span class="metric-label">Total</span>
+                        <strong id="shiftTotal">0</strong>
+                        <small id="shiftProgress">Across all items</small>
+                        <small id="shiftAht">8h AHT 0s</small>
+                    </div>
+                </div>
 
-      <article class="metric-card">
-        <span>Time left in hour</span>
-        <strong id="hourClock">60:00</strong>
-        <small id="paceLabel">Press Enter to log the next item</small>
-      </article>
-    </section>
+                <div class="metric-item">
+                    <div class="metric-icon">⏱</div>
+                    <div class="metric-content">
+                        <span class="metric-label">Time left</span>
+                        <strong id="hourClock">--:--</strong>
+                        <small id="paceLabel">Set up and start the shift</small>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <section class="progress-panel" aria-label="Current hour progress">
-      <div class="progress-head">
-        <h2>Current hour progress</h2>
-        <span id="goalBadge">0 / 35 completed</span>
-      </div>
-      <div class="progress-track" aria-hidden="true">
-        <div class="progress-fill" id="hourProgressFill"></div>
-      </div>
-      <p class="status-text" id="statusText">Start the shift to begin tracking the current hour.</p>
-    </section>
+        <section class="progress-panel" aria-label="Goal progress">
+            <div class="progress-head">
+                <h2>Goal progress</h2>
+                <span id="goalBadge">0 / 120</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+                <div class="progress-fill" id="hourProgressFill"></div>
+            </div>
+            <p class="status-text" id="statusText">Set the mode and start the shift to begin tracking.</p>
+        </section>
 
-    <section class="hours-panel" id="hoursPanel" aria-label="Hour targets" style="display: none;">
-      <div class="section-head">
-        <div class="section-copy">
-          <h2>Hour targets</h2>
-          <p>Edit every hour individually.</p>
-        </div>
-        <p class="hours-summary" id="hoursSummary">8 hours configured</p>
-      </div>
-      <div class="hours-grid" id="hoursGrid"></div>
-    </section>
+        <section class="hours-panel" id="hoursPanel" aria-label="Hour targets" hidden>
+            <div class="section-head">
+                <div class="section-copy">
+                    <h2>Hour targets</h2>
+                    <p>Targets stay fixed after setup. Only handled counts change.</p>
+                </div>
+                <p class="hours-summary" id="hoursSummary">0 hours configured</p>
+            </div>
+            <div class="hours-grid" id="hoursGrid"></div>
+        </section>
 
-    <section class="quick-actions" aria-label="Log actions">
-      <button id="logButton" type="button" class="primary">Log item</button>
-      <p class="hint">Press Enter or click Log item for every moderation action.</p>
-    </section>
-  </main>
+        <section class="quick-actions" aria-label="Log actions">
+            <p class="hint">Press Enter or use + / - on the counter card to log or undo an item.</p>
+        </section>
+    </main>
 </body>
 </html>

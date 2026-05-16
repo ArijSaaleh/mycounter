@@ -79,7 +79,26 @@ input[type="number"] {
 
 input:focus { border-color: var(--accent-blue); }
 
-.calc-display {
+.time-group { display: flex; align-items: center; gap: 2px; margin-bottom: 8px; }
+.time-group .time-native { display: none; }
+.time-group .time-h, .time-group .time-m {
+  width: 38px;
+  text-align: center;
+  padding: 6px 2px;
+  margin-bottom: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+  -moz-appearance: textfield;
+}
+.time-group .time-h::-webkit-inner-spin-button,
+.time-group .time-m::-webkit-inner-spin-button { opacity: 1; }
+.time-group .time-h:focus, .time-group .time-m:focus { border-color: var(--accent-blue); }
+.time-colon { color: var(--text-secondary); font-weight: 700; font-size: 1rem; padding: 0 1px; }
   width: 100%;
   padding: 6px 8px;
   border-radius: 6px;
@@ -123,21 +142,36 @@ input:focus { border-color: var(--accent-blue); }
   color: white;
 }
 
-.btn-increment {
+.inc-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.btn-increment, .btn-decrement {
   background: linear-gradient(135deg, var(--accent-green), #00b863);
   color: white;
-  font-size: 2rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  width: 56px;
-  height: 56px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   padding: 0;
-  margin: 8px auto 0;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
 }
+
+.btn-decrement {
+  background: var(--accent);
+}
+
+.btn-increment:active, .btn-decrement:active { transform: scale(0.92); }
 
 .btn-secondary {
   background: var(--bg-card);
@@ -281,6 +315,24 @@ input:focus { border-color: var(--accent-blue); }
 
 .controls-row { display: flex; gap: 6px; margin-top: 8px; }
 .controls-row .btn { flex: 1; }
+
+/* Hours history */
+.hour-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.65rem;
+  align-items: center;
+}
+
+.hour-row:last-child { border-bottom: none; }
+.hour-row .h-label { color: var(--text-secondary); }
+.hour-row .h-count { font-weight: 600; color: var(--text-primary); }
+.hour-row .h-status { font-size: 0.85rem; }
+.hour-row .h-status.met { color: var(--accent-green); }
+.hour-row .h-status.missed { color: var(--accent); }
+.hour-row.current-hour { background: rgba(67, 97, 238, 0.08); border-radius: 4px; }
 
 /* Hourly stats table */
 .hourly-row {

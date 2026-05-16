@@ -16,13 +16,29 @@
   let currentBreak = null;
   let breakDismissed = false;
 
+  const STORAGE_KEY = 'shiftTrackerState';
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        config, totalCount, hourCount, shiftStartMs, shiftEndMs,
+        actualStartMs, lastIncrementMs, currentHourKey, hourlyData,
+        currentBreak, breakDismissed
+      }));
+    } catch {}
+  }
+
+  function clearState() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
   const configScreen = document.getElementById('config-screen');
   const dashboard = document.getElementById('dashboard');
   const endStats = document.getElementById('end-stats');
   const clockEl = document.getElementById('live-clock');
-  const counterEl = document.getElementById('counter');
   const currentHourLabel = document.getElementById('current-hour-label');
   const incrementBtn = document.getElementById('increment-btn');
+  const decrementBtn = document.getElementById('decrement-btn');
   const ahtTimerEl = document.getElementById('aht-timer');
   const ahtTargetLabel = document.getElementById('aht-target-label');
   const shiftTimerEl = document.getElementById('shift-timer');
@@ -32,6 +48,7 @@
   const gaugeMaxLabel = document.getElementById('gauge-max-label');
   const gaugeArc = document.getElementById('gauge-arc');
   const gaugeNeedle = document.getElementById('gauge-needle');
+  const gaugeAhtEl = document.getElementById('gauge-aht');
   const progressFill = document.getElementById('progress-fill');
   const progressCount = document.getElementById('progress-count');
   const progressPct = document.getElementById('progress-pct');
@@ -48,11 +65,45 @@
   const endShiftBtn = document.getElementById('end-shift-btn');
   const backToSetupBtn = document.getElementById('back-to-setup');
   const hourlyStatsEl = document.getElementById('hourly-stats');
+  const hoursHistoryEl = document.getElementById('hours-history');
   const calcTotalEl = document.getElementById('calc-total');
 
   const shiftStartInput = document.getElementById('shift-start');
   const shiftEndInput = document.getElementById('shift-end');
   const targetHourInput = document.getElementById('target-hour');
+
+  function syncTimeInput(hId, mId, nativeId) {
+    const h = document.getElementById(hId);
+    const m = document.getElementById(mId);
+    const native = document.getElementById(nativeId);
+    function update() {
+      h.value = Math.min(Math.max(parseInt(h.value) || 0, 0), 23);
+      m.value = Math.min(Math.max(parseInt(m.value) || 0, 0), 59);
+      native.value = String(h.value).padStart(2, '0') + ':' + String(m.value).padStart(2, '0');
+      native.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    h.addEventListener('input', update);
+    m.addEventListener('input', update);
+    update();
+  }
+
+  syncTimeInput('shift-start-h', 'shift-start-m', 'shift-start');
+  syncTimeInput('shift-end-h', 'shift-end-m', 'shift-end');
+  syncTimeInput('break1-start-h', 'break1-start-m', 'break1-start');
+  syncTimeInput('lunch-start-h', 'lunch-start-m', 'lunch-start');
+  syncTimeInput('break2-start-h', 'break2-start-m', 'break2-start');
+
+  function setTimeValue(id, val) {
+    var native = document.getElementById(id);
+    native.value = val;
+    var hInp = document.getElementById(id + '-h');
+    var mInp = document.getElementById(id + '-m');
+    if (hInp) {
+      var parts = val.split(':');
+      hInp.value = parseInt(parts[0]);
+      mInp.value = parseInt(parts[1]);
+    }
+  }
 
   function timeToMinutes(t) {
     const [h, m] = t.split(':').map(Number);
@@ -107,27 +158,15 @@
 
   function now() { return Date.now(); }
 
-  function breakEnd(start, dur) {
-    const m = timeToMinutes(start) + dur;
-    return minsToTime(m);
-  }
-
   function calcShiftHours() {
     const startMin = timeToMinutes(shiftStartInput.value);
     let endMin = timeToMinutes(shiftEndInput.value);
     if (endMin <= startMin) endMin += 1440;
 
-    const b1 = timeToMinutes(breakEnd(document.getElementById('break1-start').value, 15));
-    const b1s = timeToMinutes(document.getElementById('break1-start').value);
-    const l = timeToMinutes(breakEnd(document.getElementById('lunch-start').value, 30));
-    const ls = timeToMinutes(document.getElementById('lunch-start').value);
-    const b2 = timeToMinutes(breakEnd(document.getElementById('break2-start').value, 15));
-    const b2s = timeToMinutes(document.getElementById('break2-start').value);
-
     let breakMinutes = 0;
-    if (b1 > b1s) breakMinutes += b1 - b1s;
-    if (l > ls) breakMinutes += l - ls;
-    if (b2 > b2s) breakMinutes += b2 - b2s;
+    if (document.getElementById('break1-start').value) breakMinutes += 15;
+    if (document.getElementById('lunch-start').value) breakMinutes += 60;
+    if (document.getElementById('break2-start').value) breakMinutes += 15;
 
     return (endMin - startMin - breakMinutes) / 60;
   }
@@ -138,14 +177,10 @@
     return Math.round(hours * perHour);
   }
 
-  function calcAHT() {
-    const perHour = parseInt(targetHourInput.value) || 1;
-    return Math.round(3600 / perHour);
-  }
-
   function updateConfigPreview() {
     calcTotalEl.textContent = calcTotalTarget();
-    ahtTargetLabel.textContent = 'target: ' + calcAHT() + 's';
+    var aht = parseInt(document.getElementById('aht-target-input').value) || 144;
+    ahtTargetLabel.textContent = 'target: ' + aht + 's';
   }
 
   function autoSetBreakEnd(inputId, dur) {
@@ -159,6 +194,7 @@
   shiftStartInput.addEventListener('change', updateConfigPreview);
   shiftEndInput.addEventListener('change', updateConfigPreview);
   targetHourInput.addEventListener('input', updateConfigPreview);
+  document.getElementById('aht-target-input').addEventListener('input', updateConfigPreview);
 
   document.getElementById('break1-start').addEventListener('change', updateConfigPreview);
   document.getElementById('lunch-start').addEventListener('change', updateConfigPreview);
@@ -167,21 +203,26 @@
   function setDefaultTimes() {
     const d = new Date();
     const h = d.getHours();
-    shiftStartInput.value = String(h).padStart(2, '0') + ':00';
-    shiftEndInput.value = String((h + 9) % 24).padStart(2, '0') + ':00';
-    document.getElementById('break1-start').value = String((h + 2) % 24).padStart(2, '0') + ':00';
-    document.getElementById('lunch-start').value = String((h + 4) % 24).padStart(2, '0') + ':30';
-    document.getElementById('break2-start').value = String((h + 7) % 24).padStart(2, '0') + ':00';
+    setTimeValue('shift-start', String(h).padStart(2, '0') + ':00');
+    setTimeValue('shift-end', String((h + 9) % 24).padStart(2, '0') + ':00');
+    setTimeValue('break1-start', String((h + 2) % 24).padStart(2, '0') + ':00');
+    setTimeValue('lunch-start', String((h + 4) % 24).padStart(2, '0') + ':30');
+    setTimeValue('break2-start', String((h + 7) % 24).padStart(2, '0') + ':00');
     updateConfigPreview();
   }
 
   setDefaultTimes();
 
   function getBreakEnds() {
+    function addMin(time, min) {
+      const [h, m] = time.split(':').map(Number);
+      const total = h * 60 + m + min;
+      return String(Math.floor(total / 60) % 24).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    }
     return {
-      break1End: breakEnd(document.getElementById('break1-start').value, 15),
-      lunchEnd: breakEnd(document.getElementById('lunch-start').value, 30),
-      break2End: breakEnd(document.getElementById('break2-start').value, 15)
+      break1End: addMin(document.getElementById('break1-start').value, 15),
+      lunchEnd: addMin(document.getElementById('lunch-start').value, 60),
+      break2End: addMin(document.getElementById('break2-start').value, 15)
     };
   }
 
@@ -200,7 +241,7 @@
       break2End: ends.break2End,
       targetTotal: targetTotal,
       targetHour: parseInt(targetHourInput.value) || 25,
-      ahtTarget: calcAHT(),
+      ahtTarget: parseInt(document.getElementById('aht-target-input').value) || 144,
       stepSize: parseInt(document.getElementById('step-size').value) || 1
     };
 
@@ -229,15 +270,15 @@
     startBreakChecker();
     startGaugeUpdater();
     startClock();
+    saveState();
   });
 
   function updateDisplay() {
-    counterEl.textContent = hourCount;
     currentHourLabel.textContent = 'Hour: ' + getHourRange();
 
-    counterEl.classList.remove('count-pop');
-    void counterEl.offsetWidth;
-    counterEl.classList.add('count-pop');
+    gaugeCountEl.classList.remove('count-pop');
+    void gaugeCountEl.offsetWidth;
+    gaugeCountEl.classList.add('count-pop');
 
     const pct = Math.min((totalCount / config.targetTotal) * 100, 100);
     progressFill.style.width = pct + '%';
@@ -246,6 +287,7 @@
     statRemaining.textContent = Math.max(config.targetTotal - totalCount, 0);
 
     updateGauge();
+    renderHoursHistory();
   }
 
   function increment() {
@@ -259,15 +301,34 @@
     hourlyData[getHourKey()].count += config.stepSize;
 
     updateDisplay();
+    saveState();
   }
 
   incrementBtn.addEventListener('click', increment);
 
+  function decrement() {
+    const step = Math.min(config.stepSize || 1, hourCount, totalCount);
+    if (step <= 0) return;
+    hourCount -= step;
+    totalCount -= step;
+    const hk = getHourKey();
+    if (hourlyData[hk]) hourlyData[hk].count = Math.max(0, hourlyData[hk].count - step);
+    lastIncrementMs = now();
+    updateDisplay();
+    saveState();
+  }
+
+  decrementBtn.addEventListener('click', decrement);
+
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && dashboard.style.display === 'block') {
+    if (dashboard.style.display !== 'block') return;
+    if (breakOverlay.classList.contains('active')) return;
+    if (e.key === 'Enter') {
       e.preventDefault();
-      if (breakOverlay.classList.contains('active')) return;
       increment();
+    } else if (e.key === '-' || e.key === 'Minus') {
+      e.preventDefault();
+      decrement();
     }
   });
 
@@ -280,6 +341,7 @@
       hourlyData[hk] = { count: 0, start: now() };
       lastIncrementMs = now();
       updateDisplay();
+      saveState();
     }
   }
 
@@ -289,12 +351,21 @@
     ahtInterval = setInterval(function() {
       const elapsed = now() - lastIncrementMs;
       const elapsedSec = Math.floor(elapsed / 1000);
-      ahtTimerEl.textContent = formatDuration(elapsed);
+      const formatted = formatDuration(elapsed);
+      ahtTimerEl.textContent = formatted;
       if (config.ahtTarget && elapsedSec > config.ahtTarget) {
         ahtTimerEl.classList.add('over-target');
       } else {
         ahtTimerEl.classList.remove('over-target');
       }
+
+      // Hourly average AHT for the gauge
+      const d = new Date();
+      const hourStartMs = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), 0, 0, 0).getTime();
+      const elapsedInHour = now() - hourStartMs;
+      const hourlyAht = hourCount > 0 ? formatDuration(elapsedInHour / hourCount) : '--:--';
+      gaugeAhtEl.textContent = hourlyAht;
+
       checkHourRollover();
     }, 200);
 
@@ -349,6 +420,24 @@
 
     const angle = -90 + (ratio * 180);
     gaugeNeedle.setAttribute('transform', 'rotate(' + angle + ', 100, 110)');
+  }
+
+  function renderHoursHistory() {
+    const sorted = Object.keys(hourlyData).sort(function(a, b) { return a - b; });
+    let html = '';
+    for (const h of sorted) {
+      const data = hourlyData[h];
+      const start = String(h).padStart(2, '0') + ':00';
+      const end = String((parseInt(h) + 1) % 24).padStart(2, '0') + ':00';
+      const met = data.count >= config.targetHour;
+      const isCurrent = parseInt(h) === getHourKey();
+      html += '<div class="hour-row' + (isCurrent ? ' current-hour' : '') + '">' +
+        '<span class="h-label">' + start + '-' + end + '</span>' +
+        '<span class="h-count">' + data.count + '</span>' +
+        '<span class="h-status ' + (met ? 'met' : 'missed') + '">' + (met ? '\u2713' : '\u2717') + '</span>' +
+        '</div>';
+    }
+    hoursHistoryEl.innerHTML = html;
   }
 
   // Live Clock
@@ -480,6 +569,7 @@
     hourlyData = {};
     breakDismissed = false;
     currentBreak = null;
+    clearState();
   });
 
   resetBtn.addEventListener('click', function() {
@@ -491,6 +581,37 @@
       hourlyData[currentHourKey] = { count: 0, start: now() };
       lastIncrementMs = now();
       updateDisplay();
+      saveState();
     }
   });
+
+  // Restore persisted state
+  (function restoreState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (!s.config || !s.config.targetTotal) return;
+
+      config = s.config; totalCount = s.totalCount; hourCount = s.hourCount;
+      shiftStartMs = s.shiftStartMs; shiftEndMs = s.shiftEndMs; actualStartMs = s.actualStartMs;
+      lastIncrementMs = s.lastIncrementMs; currentHourKey = s.currentHourKey;
+      hourlyData = s.hourlyData || {}; currentBreak = s.currentBreak || null;
+      breakDismissed = s.breakDismissed || false;
+
+      gaugeTargetEl.textContent = config.targetHour;
+      gaugeMaxLabel.textContent = config.targetHour;
+      ahtTargetLabel.textContent = 'target: ' + (config.ahtTarget || 144) + 's';
+
+      configScreen.style.display = 'none';
+      endStats.style.display = 'none';
+      dashboard.style.display = 'block';
+
+      updateDisplay();
+      startTimers();
+      startBreakChecker();
+      startGaugeUpdater();
+      startClock();
+    } catch (e) { clearState(); }
+  })();
 })();

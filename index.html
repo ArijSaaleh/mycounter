@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,29 +18,52 @@
       <div class="row">
         <div>
           <label for="shift-start">Start Time</label>
-          <input type="time" id="shift-start" value="13:00">
+          <div class="time-group">
+            <input type="time" id="shift-start" class="time-native" value="13:00">
+            <input type="number" id="shift-start-h" class="time-h" min="0" max="23" value="13">
+            <span class="time-colon">:</span>
+            <input type="number" id="shift-start-m" class="time-m" min="0" max="59" value="0">
+          </div>
         </div>
         <div>
           <label for="shift-end">End Time</label>
-          <input type="time" id="shift-end" value="22:00">
+          <div class="time-group">
+            <input type="time" id="shift-end" class="time-native" value="22:00">
+            <input type="number" id="shift-end-h" class="time-h" min="0" max="23" value="22">
+            <span class="time-colon">:</span>
+            <input type="number" id="shift-end-m" class="time-m" min="0" max="59" value="0">
+          </div>
         </div>
       </div>
     </div>
 
     <div class="card">
       <h2>Breaks</h2>
-      <div class="row">
-        <div>
-          <label for="break1-start">Break 1 (15min)</label>
-          <input type="time" id="break1-start" value="15:00">
+      <div>
+        <label for="break1-start">Break 1 (15min)</label>
+        <div class="time-group">
+          <input type="time" id="break1-start" class="time-native" value="15:00">
+          <input type="number" id="break1-start-h" class="time-h" min="0" max="23" value="15">
+          <span class="time-colon">:</span>
+          <input type="number" id="break1-start-m" class="time-m" min="0" max="59" value="0">
         </div>
-        <div>
-          <label for="lunch-start">Lunch (30min)</label>
-          <input type="time" id="lunch-start" value="17:30">
+      </div>
+      <div>
+        <label for="lunch-start">Lunch (1hr)</label>
+        <div class="time-group">
+          <input type="time" id="lunch-start" class="time-native" value="17:30">
+          <input type="number" id="lunch-start-h" class="time-h" min="0" max="23" value="17">
+          <span class="time-colon">:</span>
+          <input type="number" id="lunch-start-m" class="time-m" min="0" max="59" value="30">
         </div>
-        <div>
-          <label for="break2-start">Break 2 (15min)</label>
-          <input type="time" id="break2-start" value="20:00">
+      </div>
+      <div>
+        <label for="break2-start">Break 2 (15min)</label>
+        <div class="time-group">
+          <input type="time" id="break2-start" class="time-native" value="20:00">
+          <input type="number" id="break2-start-h" class="time-h" min="0" max="23" value="20">
+          <span class="time-colon">:</span>
+          <input type="number" id="break2-start-m" class="time-m" min="0" max="59" value="0">
         </div>
       </div>
     </div>
@@ -49,16 +72,24 @@
       <h2>Targets</h2>
       <div class="row">
         <div>
-          <label for="target-hour">Target Per Hour</label>
+          <label for="target-hour">Per Hour</label>
           <input type="number" id="target-hour" value="25" min="1">
         </div>
         <div>
-          <label>Shift Target</label>
-          <div class="calc-display" id="calc-total">225</div>
+          <label for="aht-target-input">AHT Target (sec)</label>
+          <input type="number" id="aht-target-input" value="144" min="1">
         </div>
       </div>
-      <label for="step-size">Increment Step</label>
-      <input type="number" id="step-size" value="1" min="1">
+      <div class="row">
+        <div>
+          <label>Shift Target</label>
+          <div class="calc-display" id="calc-total">200</div>
+        </div>
+        <div>
+          <label for="step-size">Step</label>
+          <input type="number" id="step-size" value="1" min="1">
+        </div>
+      </div>
     </div>
 
     <button class="btn btn-primary" id="start-shift-btn">Start Shift</button>
@@ -67,14 +98,6 @@
   <!-- DASHBOARD -->
   <div id="dashboard">
     <div class="live-clock" id="live-clock">00:00:00</div>
-
-    <div class="card counter-display">
-      <div class="current-hour-label" id="current-hour-label">Hour: 13:00 - 14:00</div>
-      <div class="counter-value" id="counter">0</div>
-      <div class="counter-label">this hour</div>
-      <button class="btn btn-increment" id="increment-btn">+</button>
-      <div class="hint-text">or press Enter</div>
-    </div>
 
     <div class="card">
       <div class="timer-row">
@@ -90,6 +113,7 @@
     </div>
 
     <div class="card gauge-card">
+      <div class="current-hour-label" id="current-hour-label">Hour: 13:00 - 14:00</div>
       <h2>Hourly Pace</h2>
       <div class="gauge-container">
         <svg class="gauge-svg" viewBox="0 0 200 130" id="gauge-svg">
@@ -120,7 +144,16 @@
           <span class="gauge-stat-val" id="gauge-target">25</span>
           <span class="gauge-stat-label">target/hr</span>
         </div>
+        <div class="gauge-stat">
+          <span class="gauge-stat-val" id="gauge-aht">00:00</span>
+          <span class="gauge-stat-label">AHT</span>
+        </div>
       </div>
+      <div class="inc-row">
+        <button class="btn btn-decrement" id="decrement-btn">-</button>
+        <button class="btn btn-increment" id="increment-btn">+</button>
+      </div>
+      <div class="hint-text">or press Enter</div>
     </div>
 
     <div class="card progress-container">
@@ -149,6 +182,11 @@
           <div class="stat-label">ETA Target</div>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Hours History</h2>
+      <div id="hours-history"></div>
     </div>
 
     <div class="controls-row">
